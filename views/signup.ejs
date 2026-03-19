@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Signup</title>
+    <style>
+        body {
+            font-family: Arial;
+            background: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .box {
+            background: white;
+            padding: 30px;
+            width: 350px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h2 { text-align: center; }
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0;
+            box-sizing: border-box;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            background: green;
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin-top: 10px;
+            border-radius: 4px;
+        }
+        button:hover { background: darkgreen; }
+        a { text-decoration: none; color: #007bff; }
+        a:hover { text-decoration: underline; }
+        .error { color: red; text-align: center; margin-bottom: 10px; display: none; }
+        .success { color: green; text-align: center; margin-bottom: 10px; display: none; }
+    </style>
+</head>
+<body>
+    
+
+
+<div class="box">
+    <h2>Signup</h2>
+
+    <div id="signupError" class="error"></div>
+    <div id="signupSuccess" class="success"></div>
+
+    <form id="signupForm">
+        <input type="text" id="name" placeholder="Enter Name" required>
+        <input type="email" id="email" placeholder="Enter Email" required>
+        <input type="password" id="password" placeholder="Enter Password" required>
+        <button type="submit">Signup</button>
+    </form>
+
+    <p style="text-align:center; margin-top:10px;">
+        Already have an account? <a href="/login">Login</a>
+    </p>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+
+    const signupForm = document.getElementById("signupForm");
+    const signupError = document.getElementById("signupError");
+    const signupSuccess = document.getElementById("signupSuccess");
+
+    signupForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        signupError.style.display = "none";
+        signupSuccess.style.display = "none";
+
+        const name = document.getElementById("name").value.trim();
+        const email = document.getElementById("email").value.trim();
+        const password = document.getElementById("password").value.trim();
+
+        if (!name || !email || !password) {
+            signupError.textContent = "All fields are required!";
+            signupError.style.display = "block";
+            return;
+        }
+
+        try {
+            const response = await fetch("/signup", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name, email, password })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                // Show success
+                signupSuccess.textContent = "Signup successful! Redirecting to login...";
+                signupSuccess.style.display = "block";
+
+                // Redirect to login page after short delay
+                setTimeout(() => {
+                    window.location.href = "/login?signup=success";
+                }, 1500);
+
+            } else {
+                signupError.textContent = data.message || "Signup failed!";
+                signupError.style.display = "block";
+            }
+
+        } catch (err) {
+            signupError.textContent = "Server error. Please try again.";
+            signupError.style.display = "block";
+        }
+    });
+
+});
+</script>
+
+</body>
+</html>

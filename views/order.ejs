@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>My Orders</title>
+  <style>
+    body { font-family: Arial; padding: 30px; }
+    button { padding: 10px 15px; background: green; color: white; border: none; cursor: pointer; }
+    .order-box { border: 1px solid #ddd; padding: 15px; margin: 15px 0; border-radius: 6px; }
+    .status { font-weight: bold; }
+  </style>
+</head>
+<body>
+
+<%- include("partials/navbar", { user: user }) %>
+
+<h2>Welcome, <%= user.name %></h2>
+
+<h3>Your Cart</h3>
+<div id="cartItems"></div>
+<h3>Total: ₹<span id="totalAmount">0</span></h3>
+<button onclick="placeOrder()">Place Order</button>
+
+<hr>
+
+<h2>Your Previous Orders</h2>
+
+<% if (orders.length === 0) { %>
+  <p>No previous orders found.</p>
+<% } %>
+
+<% orders.forEach(order => { %>
+  <div class="order-box">
+    <p><strong>Order ID:</strong> <%= order._id %></p>
+    <p><strong>Total:</strong> ₹<%= order.totalAmount %></p>
+    <p><strong>Pickup Time:</strong> <%= order.pickupTime %></p>
+    <p class="status">
+      Status: 
+      <% if (order.status === "Pending") { %>
+        🟡 <%= order.status %>
+      <% } else if (order.status === "Preparing") { %>
+        🔵 <%= order.status %>
+      <% } else { %>
+        🟢 <%= order.status %>
+      <% } %>
+    </p>
+  </div>
+<% }) %>
+
+<%- include("partials/footer") %>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+
+  const cart = JSON.parse(localStorage.getItem("cart")) || [];
+  const cartContainer = document.getElementById("cartItems");
+  const totalEl = document.getElementById("totalAmount");
+
+  let total = 0;
+
+  if (cart.length === 0) {
+    cartContainer.innerHTML = "<p>Your cart is empty.</p>";
+  } else {
+    cart.forEach(item => {
+      const div = document.createElement("div");
+      div.innerHTML = `${item.name} - ₹${item.price} x ${item.quantity}`;
+      cartContainer.appendChild(div);
+      total += item.price * item.quantity;
+    });
+  }
+
+  totalEl.innerText = total;
+});
+
+async function placeOrder() {
+  const cart = JSON.parse(localStorage.getItem("cart")) || [];
+
+  if (cart.length === 0) {
+    alert("Cart is empty!");
+    return;
+  }
+
+  const pickupTime = new Date().toLocaleTimeString();
+
+  const res = await fetch("/order", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ items: cart, pickupTime })
+  });
+
+  const data = await res.json();
+
+  if (data.success) {
+    alert("Order placed successfully!");
+    localStorage.removeItem("cart");
+    window.location.href = "/order";
+  } else {
+    alert(data.message);
+  }
+}
+</script>
+</body>
+</html>

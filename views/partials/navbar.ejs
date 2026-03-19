@@ -1,0 +1,154 @@
+<style>
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(135deg, #1f1f1f, #2c2c2c);
+    padding: 14px 30px;
+    color: white;
+    border-radius: 10px;
+    margin-bottom: 25px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+}
+
+.navbar h2 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 600;
+    color: #ffc107;
+}
+
+.navbar-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.navbar a,
+.navbar button {
+    color: white;
+    text-decoration: none;
+    padding: 7px 14px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    transition: 0.3s;
+}
+
+.menu-btn {
+    background: linear-gradient(135deg, #ff9800, #ff5722);
+    font-weight: 600;
+}
+
+.menu-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 12px rgba(255, 87, 34, 0.4);
+}
+
+.navbar a:not(.menu-btn) {
+    background: #007bff;
+}
+
+.navbar a:not(.menu-btn):hover {
+    background: #0056b3;
+}
+
+.cart-count {
+    background: #ff1744;
+    padding: 3px 8px;
+    border-radius: 50%;
+    font-size: 12px;
+    margin-left: 6px;
+    font-weight: bold;
+}
+
+.navbar span.welcome-text {
+    font-weight: bold;
+    color: #ffc107;
+}
+
+.logout-btn {
+    background: #dc3545;
+}
+
+.logout-btn:hover {
+    background: #b02a37;
+}
+
+@media (max-width: 768px) {
+    .navbar {
+        flex-direction: column;
+        gap: 12px;
+    }
+}
+</style>
+
+<div class="navbar">
+    <h2>🍽️ Food Store</h2>
+
+    <div class="navbar-right">
+
+        <a href="/products" class="menu-btn">Menu</a>
+
+        <a href="/cart">
+            Cart 🛒
+            <span id="cartCount" class="cart-count">0</span>
+        </a>
+
+        <a href="/order">Order</a>
+        <% if (!user || !user.name) { %>
+            <a href="/login">Login</a>
+            <a href="/signup">Signup</a>
+        <% } else { %>
+            <span class="welcome-text">
+                Welcome, <%= user.name %>
+            </span>
+            <button id="logoutBtn" class="logout-btn">
+                Logout
+            </button>
+        <% } %>
+
+    </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+
+    // ✅ Update Cart Count
+    const cartCountEl = document.getElementById("cartCount");
+
+    function updateCartCount() {
+        const cart = JSON.parse(localStorage.getItem("cart")) || [];
+        const totalQty = cart.reduce((total, item) => total + item.quantity, 0);
+        if (cartCountEl) {
+            cartCountEl.innerText = totalQty;
+        }
+    }
+
+    updateCartCount();
+
+    // ✅ Logout
+    const logoutBtn = document.getElementById("logoutBtn");
+
+    if (logoutBtn) {
+        logoutBtn.addEventListener("click", async () => {
+            try {
+                const res = await fetch("/logout", {
+                    method: "POST"
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    localStorage.removeItem("cart"); // optional cleanup
+                    window.location.href = data.redirect || "/login";
+                }
+
+            } catch (err) {
+                alert("Logout failed!");
+            }
+        });
+    }
+});
+</script>

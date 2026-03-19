@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Your Cart</title>
+    <style>
+        body { font-family: Arial; padding: 20px; background: #f4f4f4; }
+        h1, h2 { color: #333; }
+        .cart-item { background: white; padding: 15px; margin-bottom: 10px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .cart-item h3 { margin: 0 0 5px; }
+        .cart-item p { margin: 5px 0; }
+        button { padding: 5px 10px; margin-right: 5px; border:none; border-radius:5px; cursor:pointer; }
+        .remove-btn { background: red; color: white; }
+        .quantity-btn { background: #007bff; color: white; }
+        #confirmOrder { background: green; color: white; padding: 10px 15px; border:none; border-radius:5px; cursor:pointer; margin-top: 20px; }
+    </style>
+</head>
+
+<body>
+
+<%- include("partials/navbar", { user: user }) %>
+
+<h1>Your Cart 🛒</h1>
+
+<div id="cartContainer"></div>
+
+<h2>Total: ₹<span id="totalPrice">0</span></h2>
+
+<br>
+<button id="confirmOrder">Confirm Order</button>
+
+<%- include("partials/footer") %>
+
+<script>
+const user = <%- JSON.stringify(user || null) %>;
+
+function renderCart() {
+    const cart = JSON.parse(localStorage.getItem("cart")) || [];
+    const container = document.getElementById("cartContainer");
+    const totalElement = document.getElementById("totalPrice");
+
+    if (cart.length === 0) {
+        container.innerHTML = "<p>Cart is empty</p>";
+        totalElement.innerText = 0;
+        return;
+    }
+
+    let total = 0;
+    let html = "";
+
+    cart.forEach((item, index) => {
+        total += Number(item.price) * Number(item.quantity);
+
+        html += `
+            <div class="cart-item">
+                <h3>${item.name}</h3>
+                <p>₹${item.price} x ${item.quantity} = ₹${item.price * item.quantity}</p>
+                <button class="quantity-btn" onclick="decreaseQty(${index})">-</button>
+                <button class="quantity-btn" onclick="increaseQty(${index})">+</button>
+                <button class="remove-btn" onclick="removeItem(${index})">Remove</button>
+            </div>
+        `;
+    });
+
+    container.innerHTML = html;
+    totalElement.innerText = total;
+}
+
+function increaseQty(index) {
+    let cart = JSON.parse(localStorage.getItem("cart")) || [];
+    cart[index].quantity += 1;
+    localStorage.setItem("cart", JSON.stringify(cart));
+    renderCart();
+}
+
+function decreaseQty(index) {
+    let cart = JSON.parse(localStorage.getItem("cart")) || [];
+    if (cart[index].quantity > 1) {
+        cart[index].quantity -= 1;
+    } else {
+        cart.splice(index, 1);
+    }
+    localStorage.setItem("cart", JSON.stringify(cart));
+    renderCart();
+}
+
+function removeItem(index) {
+    let cart = JSON.parse(localStorage.getItem("cart")) || [];
+    cart.splice(index, 1);
+    localStorage.setItem("cart", JSON.stringify(cart));
+    renderCart();
+}
+
+
+// ✅ CONFIRM ORDER BUTTON
+document.getElementById("confirmOrder").addEventListener("click", () => {
+
+    const cart = JSON.parse(localStorage.getItem("cart")) || [];
+
+    if (cart.length === 0) {
+        alert("Cart is empty!");
+        return;
+    }
+
+    if (!user) {
+        alert("Please login first!");
+        window.location.href = "/login";
+        return;
+    }
+
+    // 🔥 Redirect to Order Page
+    window.location.href = "/order";
+});
+
+document.addEventListener("DOMContentLoaded", renderCart);
+</script>
+
+</body>
+</html>
