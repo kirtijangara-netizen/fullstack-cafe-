@@ -13,6 +13,7 @@ router.post("/update-order", adminController.updateOrderStatus);
 
 // ADD PRODUCT WITH IMAGE
 router.post("/add-product", upload.single("image"), adminController.addProduct);
+router.post('/edit-product/:id', adminController.editProduct);
 
 router.post("/toggle-product/:id", adminController.toggleProductAvailability);
 

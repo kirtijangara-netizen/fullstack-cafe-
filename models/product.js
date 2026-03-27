@@ -30,6 +30,7 @@ const productSchema = new mongoose.Schema(
       type: String,
       default: ""
     },
+    stock: { type: Number, default: 0 },
 
     isAvailable: {
       type: Boolean,

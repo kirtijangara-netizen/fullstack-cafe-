@@ -2,16 +2,40 @@ const Order = require("../models/order");
 const Product = require("../models/product");
 const Support = require("../models/Support");
 
-// ================= ADMIN DASHBOARD =================
+// ================= ADMIN DASHBOARD (Supports No-Refresh Pagination) =================
 exports.getDashboard = async (req, res) => {
   try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = 8; 
+    const skip = (page - 1) * limit;
 
+    // Fetch paginated products
+    const products = await Product.find()
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const totalProducts = await Product.countDocuments();
+    const totalPages = Math.ceil(totalProducts / limit);
+
+    // AJAX CHECK: If clicking pagination, return JSON only
+    if (req.query.ajax === 'true' || req.xhr) {
+      return res.json({
+        success: true,
+        products,
+        currentPage: page,
+        totalPages
+      });
+    }
+
+    // Full Page Load Data (Orders & Support)
     const orders = await Order.find()
-      .populate("user", "name email")
-      .populate("items.productId", "name price")
+      .populate("user", "name email") 
+      .populate({
+        path: "items.productId",
+        select: "name price" 
+      })
       .sort({ createdAt: -1 });
-
-    const products = await Product.find().sort({ category: 1 });
 
     const supportRequests = await Support.find().sort({ createdAt: -1 });
 
@@ -19,116 +43,95 @@ exports.getDashboard = async (req, res) => {
       orders: orders || [],
       products: products || [],
       supportRequests: supportRequests || [],
-      user: req.user || null
+      user: req.user || null,
+      currentPage: page,
+      totalPages: totalPages
     });
-
   } catch (err) {
-    console.error("Admin Dashboard Error:", err);
+    console.error("Dashboard Error:", err);
     res.status(500).send("Admin Dashboard Error: " + err.message);
   }
 };
 
-
-// ================= UPDATE ORDER STATUS =================
+// ================= UPDATE ORDER STATUS (No-Refresh AJAX) =================
 exports.updateOrderStatus = async (req, res) => {
   try {
-
     const { orderId, status } = req.body;
-
-    const allowedStatuses = ["Pending", "Preparing", "Delivered", "Cancelled"];
-
-    if (!orderId || !status || !allowedStatuses.includes(status)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid order data"
-      });
-    }
-
-    const updatedOrder = await Order.findByIdAndUpdate(
-      orderId,
-      { status },
-      { new: true }
-    );
-
+    const updatedOrder = await Order.findByIdAndUpdate(orderId, { status }, { new: true });
+    
     if (!updatedOrder) {
-      return res.status(404).json({
-        success: false,
-        message: "Order not found"
-      });
+        return res.status(404).json({ success: false, message: "Order not found" });
     }
-
-    res.json({ success: true });
-
+    
+    // Returns status to update the badge color/text instantly
+    res.json({ success: true, status: updatedOrder.status });
   } catch (err) {
-    console.error("Update Order Error:", err);
-    res.status(500).json({
-      success: false,
-      message: err.message
-    });
+    res.status(500).json({ success: false, message: err.message });
   }
 };
 
-
-// ================= ADD PRODUCT (WITH MULTER IMAGE UPLOAD) =================
+// ================= ADD PRODUCT (Includes Stock) =================
 exports.addProduct = async (req, res) => {
   try {
-
-    const { name, price, category } = req.body;
-
-    if (!name || !price || !category) {
-      return res.status(400).send("All required fields must be filled");
-    }
-
-    // 🔥 image uploaded by multer
-    let imagePath = "";
-
-    if (req.file) {
-      imagePath = "/images/" + req.file.filename;
-    }
+    const { name, price, category, description, stock } = req.body;
+    let imagePath = req.file ? "/images/" + req.file.filename : "";
 
     await Product.create({
       name: name.trim(),
       price: Number(price),
       category: category.trim(),
+      description: description.trim(),
       image: imagePath,
+      stock: Number(stock) || 0, // NEW: Stock logic
       isAvailable: true
     });
 
+    // After adding, we redirect back to refresh the list
     res.redirect("/admin");
-
   } catch (err) {
-    console.error("Add Product Error:", err);
     res.status(500).send(err.message);
   }
 };
 
-
-// ================= TOGGLE PRODUCT AVAILABILITY =================
+// ================= TOGGLE AVAILABILITY (No-Refresh AJAX) =================
 exports.toggleProductAvailability = async (req, res) => {
   try {
-
     const product = await Product.findById(req.params.id);
-
-    if (!product) {
-      return res.status(404).json({
-        success: false,
-        message: "Product not found"
-      });
-    }
-
     product.isAvailable = !product.isAvailable;
     await product.save();
-
-    return res.json({
-      success: true,
-      isAvailable: product.isAvailable
-    });
-
+    
+    res.json({ success: true, isAvailable: product.isAvailable });
   } catch (err) {
-    console.error("Toggle Error:", err);
-    return res.status(500).json({
-      success: false,
-      message: err.message
-    });
+    res.status(500).json({ success: false });
+  }
+};
+
+// ================= EDIT PRODUCT (Includes Stock & No-Refresh AJAX) =================
+exports.editProduct = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, price, description, stock } = req.body;
+
+    const updatedProduct = await Product.findByIdAndUpdate(
+      id,
+      { 
+        name: name.trim(), 
+        price: Number(price), 
+        description: description.trim(),
+        stock: Number(stock) // NEW: Update stock logic
+      },
+      { new: true } // Returns the object AFTER the update
+    );
+
+    if (!updatedProduct) {
+      return res.status(404).json({ success: false, message: "Product not found" });
+    }
+
+    // Returns the full product object so the frontend script can 
+    // update the UI card without a page refresh
+    res.json({ success: true, product: updatedProduct });
+  } catch (err) {
+    console.error("Edit Product Error:", err);
+    res.status(500).json({ success: false, message: "Server Error" });
   }
 };
