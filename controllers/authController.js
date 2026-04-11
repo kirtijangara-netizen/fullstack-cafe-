@@ -1,11 +1,10 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/user");
-const { sendOTPEmail } = require("../utils/mailer"); // Import utility
+const { sendOTPEmail } = require("../utils/mailer"); 
 
 const SECRET_KEY = process.env.SECRET_KEY || "mysecretkey";
 const otpStore = {}; 
 
-// ================= SHOW LOGIN/SIGNUP =================
 exports.showLogin = (req, res) => {
   res.render("login", { signupSuccess: req.query.signup === "success", user: req.user || null });
 };
@@ -14,7 +13,6 @@ exports.showSignup = (req, res) => {
   res.render("signup", { user: req.user || null });
 };
 
-// ================= SEND OTP (REWRITTEN) =================
 exports.sendOTP = async (req, res) => {
   const { email } = req.body;
   if (!email) return res.status(400).json({ success: false, message: "Email is required" });
@@ -23,7 +21,7 @@ exports.sendOTP = async (req, res) => {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     otpStore[email] = { otp, expires: Date.now() + 300000 }; 
 
-    // Use the custom mailer utility
+    // Calling the fixed mailer utility
     const result = await sendOTPEmail(email, otp);
 
     if (result.success) {
@@ -38,7 +36,6 @@ exports.sendOTP = async (req, res) => {
   }
 };
 
-// ================= SIGNUP =================
 exports.signup = async (req, res) => {
   const { name, email, password, otp } = req.body;
   if (!name || !email || !password || !otp)
@@ -53,6 +50,7 @@ exports.signup = async (req, res) => {
     const existingUser = await User.findOne({ email });
     if (existingUser) return res.status(400).json({ success: false, message: "User already exists" });
 
+    // Note: In production, remember to hash passwords using bcrypt!
     await User.create({ name, email, password, role: "user" });
     delete otpStore[email]; 
 
@@ -62,7 +60,6 @@ exports.signup = async (req, res) => {
   }
 };
 
-// ================= LOGIN =================
 exports.login = async (req, res) => {
   const { email, password } = req.body;
   try {

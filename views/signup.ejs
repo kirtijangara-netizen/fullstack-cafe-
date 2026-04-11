@@ -58,31 +58,38 @@
         const otpSection = document.getElementById('otpSection');
         const msg = document.getElementById('msg');
 
-        // Step 1: Send OTP
+        // Step 1: Send OTP logic
         otpBtn.addEventListener('click', async () => {
             const email = document.getElementById('email').value;
             if(!email) return alert("Enter email first");
             
             otpBtn.innerText = "Sending...";
-            const res = await fetch('/send-otp', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ email })
-            });
-            const data = await res.json();
-            
-            if(data.success) {
-                otpSection.classList.remove('hidden');
-                msg.className = "text-xs mb-3 text-green-600 block";
-                msg.innerText = "OTP sent! Check your inbox.";
-                otpBtn.innerText = "Resend";
-            } else {
-                alert(data.message);
+            try {
+                const res = await fetch('/send-otp', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ email })
+                });
+                const data = await res.json();
+                
+                if(data.success) {
+                    otpSection.classList.remove('hidden');
+                    msg.className = "text-xs mb-3 text-green-600 block";
+                    msg.innerText = "OTP sent! Check your inbox.";
+                    otpBtn.innerText = "Resend";
+                } else {
+                    msg.className = "text-xs mb-3 text-red-600 block";
+                    msg.innerText = data.message;
+                    otpBtn.innerText = "Send OTP";
+                }
+            } catch (err) {
+                console.error(err);
+                alert("Failed to send OTP. Check your server connection.");
                 otpBtn.innerText = "Send OTP";
             }
         });
 
-        // Step 2: Final Signup
+        // Step 2: Final Signup/Verification logic
         document.getElementById('signupForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const payload = {
@@ -92,18 +99,25 @@
                 otp: document.getElementById('otp').value
             };
 
-            const res = await fetch('/signup', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(payload)
-            });
-            const data = await res.json();
+            try {
+                const res = await fetch('/signup', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
 
-            if(data.success) {
-                window.location.href = data.redirect;
-            } else {
+                if(data.success) {
+                    // Redirecting to login upon successful verification
+                    window.location.href = data.redirect;
+                } else {
+                    msg.className = "text-xs mb-3 text-red-600 block";
+                    msg.innerText = data.message;
+                }
+            } catch (err) {
+                console.error(err);
                 msg.className = "text-xs mb-3 text-red-600 block";
-                msg.innerText = data.message;
+                msg.innerText = "An error occurred during signup.";
             }
         });
     </script>
