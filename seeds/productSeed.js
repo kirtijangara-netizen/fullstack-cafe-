@@ -15,7 +15,6 @@ const products = [
   { name: "Egg", price: 40, image: "/images/Egg.avif", category: "Desserts", description: "Classic boiled eggs, seasoned with a pinch of salt and pepper." },
   { name: "Icecream", price: 120, image: "/images/Icecream.avif", category: "Desserts", description: "Creamy vanilla bean ice cream made with real dairy." },
   { name: "Momose", price: 60, image: "/images/Momose.avif", category: "Fast Food", description: "Steamed Himalayan dumplings served with spicy tomato chutney." },
-  { name: "Nodle", price: 120, image: "/images/nodle.avif", category: "Fast Food", description: "Wok-tossed noodles with crunchy vegetables and soy glaze." },
   { name: "Pizza", price: 250, image: "/images/Pizza.avif", category: "Fast Food", description: "Hand-tossed dough with melty mozzarella and fresh basil." },
   { name: "Pastry", price: 80, image: "/images/Pastry.avif", category: "Desserts", description: "Light and flaky pastry filled with sweet vanilla custard." },
   { name: "Coco Cake", price: 120, image: "/images/cococake.jpg", category: "Desserts", description: "Delicious coconut-infused sponge cake with shredded coconut flakes." },
