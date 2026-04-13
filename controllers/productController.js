@@ -1,3 +1,4 @@
+// controllers/productController.js
 const Product = require("../models/product");
 
 exports.getProducts = async (req, res) => {
@@ -31,7 +32,7 @@ exports.getProducts = async (req, res) => {
       .limit(limit);
 
     res.render("products", {
-      products,
+      products: products, // Yahan products array bhej rahe hain
       user: req.user || null,
       selectedCategory: category,
       search,

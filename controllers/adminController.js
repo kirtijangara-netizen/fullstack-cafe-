@@ -1,15 +1,16 @@
 const Order = require("../models/order");
 const Product = require("../models/product");
 const Support = require("../models/Support");
+const User = require("../models/user"); // Added for total users count
 
-// ================= ADMIN DASHBOARD (Supports No-Refresh Pagination) =================
+// ================= ADMIN DASHBOARD (Includes Stats + Previous Logic) =================
 exports.getDashboard = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = 8; 
     const skip = (page - 1) * limit;
 
-    // Fetch paginated products
+    // 1. Fetch paginated products (Preserved)
     const products = await Product.find()
       .sort({ createdAt: -1 })
       .skip(skip)
@@ -18,7 +19,7 @@ exports.getDashboard = async (req, res) => {
     const totalProducts = await Product.countDocuments();
     const totalPages = Math.ceil(totalProducts / limit);
 
-    // AJAX CHECK: If clicking pagination, return JSON only
+    // AJAX CHECK: If clicking pagination, return JSON only (Preserved)
     if (req.query.ajax === 'true' || req.xhr) {
       return res.json({
         success: true,
@@ -28,7 +29,18 @@ exports.getDashboard = async (req, res) => {
       });
     }
 
-    // Full Page Load Data (Orders & Support)
+    // 2. DASHBOARD STATS LOGIC (NEW)
+    const totalOrders = await Order.countDocuments();
+    const totalUsers = await User.countDocuments({ role: { $ne: 'admin' } }); // Excludes admins from customer count
+    
+    // Revenue Calculation (Excluding Cancelled Orders)
+    const revenueData = await Order.aggregate([
+      { $match: { status: { $ne: 'Cancelled' } } },
+      { $group: { _id: null, total: { $sum: "$totalAmount" } } }
+    ]);
+    const totalRevenue = revenueData.length > 0 ? revenueData[0].total : 0;
+
+    // 3. Full Page Load Data (Orders & Support - Preserved)
     const orders = await Order.find()
       .populate("user", "name email") 
       .populate({
@@ -39,13 +51,18 @@ exports.getDashboard = async (req, res) => {
 
     const supportRequests = await Support.find().sort({ createdAt: -1 });
 
+    // Render with all data including new stats
     res.render("adminDashboard", {
       orders: orders || [],
       products: products || [],
       supportRequests: supportRequests || [],
       user: req.user || null,
       currentPage: page,
-      totalPages: totalPages
+      totalPages: totalPages,
+      // Pass stats to EJS
+      totalOrders,
+      totalUsers,
+      totalRevenue
     });
   } catch (err) {
     console.error("Dashboard Error:", err);
@@ -53,7 +70,7 @@ exports.getDashboard = async (req, res) => {
   }
 };
 
-// ================= UPDATE ORDER STATUS (No-Refresh AJAX) =================
+// ================= UPDATE ORDER STATUS (Preserved) =================
 exports.updateOrderStatus = async (req, res) => {
   try {
     const { orderId, status } = req.body;
@@ -63,14 +80,13 @@ exports.updateOrderStatus = async (req, res) => {
         return res.status(404).json({ success: false, message: "Order not found" });
     }
     
-    // Returns status to update the badge color/text instantly
     res.json({ success: true, status: updatedOrder.status });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
 };
 
-// ================= ADD PRODUCT (Includes Stock) =================
+// ================= ADD PRODUCT (Preserved) =================
 exports.addProduct = async (req, res) => {
   try {
     const { name, price, category, description, stock } = req.body;
@@ -82,18 +98,17 @@ exports.addProduct = async (req, res) => {
       category: category.trim(),
       description: description.trim(),
       image: imagePath,
-      stock: Number(stock) || 0, // NEW: Stock logic
+      stock: Number(stock) || 0,
       isAvailable: true
     });
 
-    // After adding, we redirect back to refresh the list
     res.redirect("/admin");
   } catch (err) {
     res.status(500).send(err.message);
   }
 };
 
-// ================= TOGGLE AVAILABILITY (No-Refresh AJAX) =================
+// ================= TOGGLE AVAILABILITY (Preserved) =================
 exports.toggleProductAvailability = async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
@@ -106,7 +121,7 @@ exports.toggleProductAvailability = async (req, res) => {
   }
 };
 
-// ================= EDIT PRODUCT (Includes Stock & No-Refresh AJAX) =================
+// ================= EDIT PRODUCT (Preserved) =================
 exports.editProduct = async (req, res) => {
   try {
     const { id } = req.params;
@@ -118,17 +133,15 @@ exports.editProduct = async (req, res) => {
         name: name.trim(), 
         price: Number(price), 
         description: description.trim(),
-        stock: Number(stock) // NEW: Update stock logic
+        stock: Number(stock) 
       },
-      { new: true } // Returns the object AFTER the update
+      { new: true }
     );
 
     if (!updatedProduct) {
       return res.status(404).json({ success: false, message: "Product not found" });
     }
 
-    // Returns the full product object so the frontend script can 
-    // update the UI card without a page refresh
     res.json({ success: true, product: updatedProduct });
   } catch (err) {
     console.error("Edit Product Error:", err);

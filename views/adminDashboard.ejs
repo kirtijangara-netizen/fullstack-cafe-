@@ -34,6 +34,38 @@
 
 <div class="max-w-7xl mx-auto px-6 py-10">
 
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+        <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100 flex items-center gap-5">
+            <div class="bg-emerald-100 text-emerald-600 h-14 w-14 rounded-2xl flex items-center justify-center text-xl shadow-inner">
+                <i class="fa-solid fa-indian-rupee-sign"></i>
+            </div>
+            <div>
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Revenue</p>
+                <h2 class="text-2xl font-black text-slate-800">₹<%= totalRevenue || 0 %></h2>
+            </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100 flex items-center gap-5">
+            <div class="bg-blue-100 text-blue-600 h-14 w-14 rounded-2xl flex items-center justify-center text-xl shadow-inner">
+                <i class="fa-solid fa-box"></i>
+            </div>
+            <div>
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Orders Handled</p>
+                <h2 class="text-2xl font-black text-slate-800"><%= totalOrders || 0 %></h2>
+            </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100 flex items-center gap-5">
+            <div class="bg-amber-100 text-amber-600 h-14 w-14 rounded-2xl flex items-center justify-center text-xl shadow-inner">
+                <i class="fa-solid fa-users"></i>
+            </div>
+            <div>
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Customers</p>
+                <h2 class="text-2xl font-black text-slate-800"><%= totalUsers || 0 %></h2>
+            </div>
+        </div>
+    </div>
+
     <div class="inline-flex p-1 bg-slate-200/50 rounded-2xl mb-10 shadow-inner">
         <button id="btn-orders" onclick="switchTab('orders', event)" class="tab-btn active-tab px-10 py-3 rounded-xl font-bold transition-all">Orders</button>
         <button id="btn-products" onclick="switchTab('products', event)" class="tab-btn px-10 py-3 rounded-xl font-bold text-slate-500 hover:text-slate-700 transition-all">Products</button>
@@ -135,7 +167,7 @@
             <% products.forEach(product => { %>
             <div id="product-card-<%= product._id %>" class="bg-white p-6 rounded-3xl shadow-sm flex flex-col md:flex-row justify-between items-center border border-slate-100 gap-6 animate-fade-in">
                 <div class="flex items-center gap-6 w-full">
-                    <img src="<%= product.image %>" class="w-24 h-24 object-cover rounded-2xl border border-slate-50">
+                    <img src="<%= product.image %>" class="w-24 h-24 object-cover rounded-2xl border border-slate-50" onerror="this.src='https://placehold.co/100x100?text=No+Image'">
                     <div class="flex-1">
                         <div class="flex items-center gap-2 mb-1">
                             <p class="font-black text-xl text-slate-800 item-name"><%= product.name %></p>
@@ -212,7 +244,6 @@
 </div>
 
 <script>
-// --- NO-REFRESH ORDER STATUS UPDATE ---
 async function updateStatus(id, status) {
     try {
         const res = await fetch('/admin/update-order', {
@@ -220,7 +251,6 @@ async function updateStatus(id, status) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ orderId: id, status })
         });
-        
         const data = await res.json();
         if (data.success) {
             const badge = document.getElementById(`status-badge-${id}`);
@@ -235,22 +265,18 @@ async function updateStatus(id, status) {
     } catch (err) { console.error("Update failed:", err); }
 }
 
-// --- NO-REFRESH PRODUCT EDIT ---
 async function submitEdit(event) {
     event.preventDefault();
     const id = document.getElementById('editId').value;
     const btn = document.getElementById('updateBtn');
-    
     const payload = { 
         name: document.getElementById('editName').value, 
         price: document.getElementById('editPrice').value, 
         description: document.getElementById('editDescription').value,
         stock: document.getElementById('editStock').value
     };
-
     btn.innerText = "Saving...";
     btn.disabled = true;
-
     try {
         const res = await fetch(`/admin/edit-product/${id}`, {
             method: 'POST',
@@ -264,14 +290,10 @@ async function submitEdit(event) {
                 card.querySelector('.item-name').innerText = data.product.name;
                 card.querySelector('.item-price').innerText = `₹${data.product.price}`;
                 card.querySelector('.item-desc').innerText = data.product.description;
-                
-                // Update Stock UI
                 const stockVal = card.querySelector('.item-stock-val');
                 const stockBadge = card.querySelector('.item-stock-badge');
                 stockVal.innerText = data.product.stock;
                 stockBadge.className = `item-stock-badge text-[9px] font-black px-2 py-0.5 rounded-md uppercase ${data.product.stock > 5 ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`;
-                
-                // Update Edit Button attributes
                 const editBtn = card.querySelector('button[onclick^="openEditModal"]');
                 editBtn.setAttribute('onclick', `openEditModal('${id}', '${data.product.name}', '${data.product.price}', \`${data.product.description}\`, '${data.product.stock}')`);
             }
@@ -284,7 +306,6 @@ async function submitEdit(event) {
     }
 }
 
-// --- NO-REFRESH PAGINATION ---
 async function changePage(page) {
     try {
         const res = await fetch(`/admin?page=${page}&ajax=true`);
@@ -292,12 +313,11 @@ async function changePage(page) {
         if (data.success) {
             const listContainer = document.getElementById('product-list-container');
             listContainer.innerHTML = ''; 
-
             data.products.forEach(p => {
                 listContainer.innerHTML += `
                 <div id="product-card-${p._id}" class="bg-white p-6 rounded-3xl shadow-sm flex flex-col md:flex-row justify-between items-center border border-slate-100 gap-6 animate-fade-in">
                     <div class="flex items-center gap-6 w-full">
-                        <img src="${p.image}" class="w-24 h-24 object-cover rounded-2xl border border-slate-50">
+                        <img src="${p.image}" class="w-24 h-24 object-cover rounded-2xl border border-slate-50" onerror="this.src='https://placehold.co/100x100?text=No+Image'">
                         <div class="flex-1">
                             <div class="flex items-center gap-2 mb-1">
                                 <p class="font-black text-xl text-slate-800 item-name">${p.name}</p>
@@ -329,21 +349,16 @@ function renderPagination(current, total) {
     const container = document.getElementById('pagination-container');
     let html = '';
     if (total <= 1) { container.innerHTML = ''; return; }
-    
     if (current > 1) html += `<button onclick="changePage('${current - 1}')" class="px-5 py-2.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-600 hover:bg-slate-100 transition shadow-sm">Prev</button>`;
-    
     html += '<div class="flex items-center gap-2">';
     for(let i = 1; i <= total; i++) {
         html += `<button onclick="changePage('${i}')" class="w-10 h-10 flex items-center justify-center rounded-xl font-black transition-all ${parseInt(current) === i ? 'bg-accent text-white shadow-lg scale-110' : 'bg-white text-slate-400 border border-slate-200 hover:border-accent'}">${i}</button>`;
     }
     html += '</div>';
-    
     if (current < total) html += `<button onclick="changePage('${parseInt(current) + 1}')" class="px-5 py-2.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-600 hover:bg-slate-100 transition shadow-sm">Next</button>`;
-    
     container.innerHTML = html;
 }
 
-// --- TAB & MODAL HELPERS ---
 function switchTab(tab, event) {
     document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
     document.getElementById(tab + '-section').classList.remove('hidden');
